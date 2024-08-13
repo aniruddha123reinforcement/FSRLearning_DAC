@@ -71,7 +71,7 @@ The output of the selection process is a 5-tuple object.
 - Number of states visited
 
 
-## Existing methods
+## Results Analysis
 
 - Compare the performance of the FSRLearning library with RFE from Sickit-Learn :
 
