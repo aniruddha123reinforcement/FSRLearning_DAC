@@ -27,7 +27,7 @@ class State:
         self.reward = reward
         self.nb_visited = nb_visited
 
-    def get_reward(self, clf, X, y) -> float:
+    def get_reward(self, clf, X, y, area_dict) -> float:
         '''
             Returns the reward of a set of variable
 
