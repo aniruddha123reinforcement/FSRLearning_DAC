@@ -23,10 +23,16 @@ class State:
                  nb_visited: int = 0) -> None:
         self.number = number
         self.description = description
+        # use the description list for your area reward 
+        # use the total reward after normalization 
         self.v_value = v_value
         self.reward = reward
         self.nb_visited = nb_visited
-
+                     
+    def calculate_area_penalty(self, area_dict):
+        reward = -sum(area_dict[i]['area_value'] for i in self.description)
+        return reward
+        
     def get_reward(self, clf, X, y, area_dict) -> float:
         '''
             Returns the reward of a set of variable
@@ -55,7 +61,8 @@ class State:
                     accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'r2'))
 
                 self.reward = accuracy
-                return self.reward
+                self.area_penalty = self.calculate_area_penalty(area_dict)
+                return self.reward + self.area_penalty
         else:
             return self.reward
 
