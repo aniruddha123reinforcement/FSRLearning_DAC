@@ -60,7 +60,7 @@ class FeatureSelectorRL:
         self.not_explored = not_explored
         self.starting_state = starting_state
 
-    def fit_predict(self, X, y, clf=RandomForestClassifier(n_jobs=-1)) -> tuple[list, int]:
+    def fit_predict(self, X, y, clf=RandomForestClassifier(n_jobs=-1), area_dict) -> tuple[list, int]:
         """
             Get the sorted weighted variables
 
@@ -128,7 +128,7 @@ class FeatureSelectorRL:
                     self.not_explored += 1
 
                 # We evaluate the reward of the next_state
-                next_state.get_reward(clf, X, y)
+                next_state.get_reward(clf, X, y, area_dict)
 
                 # We update the v_value of the current_state
                 current_state.update_v_value(.99, .99, next_state)
