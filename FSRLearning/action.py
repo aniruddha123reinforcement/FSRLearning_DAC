@@ -17,15 +17,15 @@ class Action:
         Return the AOR table
         '''
         # Get the feature played and information about it
-        chosen_feature: int = list(set(self.state_next.description)-set(self.state_t.description))[0]
-
-        nb_played: int = aor_historic[0][chosen_feature] + 1    
-        aorf_value: float = aor_historic[1][chosen_feature]
+        chosen_combination: int = list(set(self.state_next.description)-set(self.state_t.description))[0]
+        
+        nb_played: int = aor_historic[0][chosen_combination] + 1    
+        aorf_value: float = aor_historic[1][chosen_combination]
 
         aor_new = aor_historic.copy()
 
         # Update the value
-        aor_new[0][chosen_feature] = nb_played
-        aor_new[1][chosen_feature] = ((nb_played-1) * aorf_value + self.state_t.v_value) / nb_played
+        aor_new[0][chosen_combination] = nb_played
+        aor_new[1][chosen_combination] = ((nb_played-1) * aorf_value + self.state_t.v_value) / nb_played
 
         return aor_new
