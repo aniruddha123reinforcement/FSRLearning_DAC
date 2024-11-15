@@ -315,9 +315,9 @@ class FeatureSelectorRL:
                 for value in self.feature_structure[key]:
                     if value.reward > best_reward:
                         best_reward = value.reward
-                        best_state_reward = value
+                        best_state_reward = value.description
                     if value.v_value > best_v_value:
                         best_v_value = value.v_value
-                        best_state_v_value = value
+                        best_state_v_value = value.description
 
         return [best_state_reward, best_reward], [best_state_v_value, best_v_value]
