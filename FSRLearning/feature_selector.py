@@ -208,29 +208,33 @@ class FeatureSelectorRL:
         plt.ylabel('Number of visits')
         plt.plot()
 
-    def compare_with_benchmark(self, X, y, results) -> list:
+   def compare_with_benchmark(self, X, y, results) -> tuple:
         """
-            Returns all the metrics at each iteration on the set of feature
-
-            Plots the graph of these evolutions
+            Returns all the metrics at each iteration on the set of features.
+    
+            Plots the graph of these evolutions, and returns the sum of is_better_list 
+            (indicating how often RL outperformed the benchmark) and the feature combination 
+            list for RL that has the highest accuracy.
         """
         is_better_list: list = []
-        avg_benchmark_acccuracy: list = []
-        avg_rl_acccuracy: list = []
-
+        avg_benchmark_accuracy: list = []
+        avg_rl_accuracy: list = []
+        best_rl_accuracy = 0
+        best_feature_combination = []  # To store the best feature combination for RL
+    
         results = results[0]
-
+    
         print('---------- Data Processing ----------')
         X = pd.DataFrame(X)
         y = pd.Series(y)
-
+    
         print('---------- Score ----------')
         for i in range(1, self.feature_number):
             # From RL
             clf = RandomForestClassifier(n_jobs=-1)
             df = pd.concat([X.iloc[:, results[-1][i:]], y], axis=1)
             df = df.drop_duplicates(ignore_index=True)
-
+    
             min_samples = np.min(np.array(df.iloc[:, -1].value_counts()))
             if min_samples < 5 and min_samples >= 2:
                 accuracy: float = np.mean(
@@ -240,59 +244,65 @@ class FeatureSelectorRL:
             else:
                 accuracy: float = np.mean(
                     cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv=5, scoring='balanced_accuracy'))
-
+    
             # Benchmark
             estimator = RandomForestClassifier(n_jobs=-1)
             selector = RFE(estimator, n_features_to_select=len(results[-1]) - i, step=1)
             cv_results = cross_validate(selector, X, y, cv=5, scoring='balanced_accuracy', return_estimator=True)
             sele_acc = np.mean(cv_results['test_score'])
-
+    
+            # Track the best RL feature combination and accuracy
+            if accuracy > best_rl_accuracy:
+                best_rl_accuracy = accuracy
+                best_feature_combination = results[-1][i:]
+    
             if accuracy >= sele_acc:
                 is_better_list.append(1)
             else:
                 is_better_list.append(0)
-
-            avg_benchmark_acccuracy.append(sele_acc)
-            avg_rl_acccuracy.append(accuracy)
-
+    
+            avg_benchmark_accuracy.append(sele_acc)
+            avg_rl_accuracy.append(accuracy)
+    
             print(
                 f"Set of variables : Benchmark (For Each Fold): {[X.columns[selector.support_].tolist() for selector in cv_results['estimator']]} and RL : {results[-1][i:]}")
             print(
                 f'Benchmark accuracy : {sele_acc}, RL accuracy : {accuracy} with {len(results[-1]) - i} variables {is_better_list}')
-
+    
         print(
-            f'Average benchmark accuracy : {np.mean(avg_benchmark_acccuracy)}, rl accuracy : {np.mean(avg_rl_acccuracy)}')
+            f'Average benchmark accuracy : {np.mean(avg_benchmark_accuracy)}, RL accuracy : {np.mean(avg_rl_accuracy)}')
         print(
-            f'Median benchmark accuracy : {np.median(avg_benchmark_acccuracy)}, rl accuracy : {np.median(avg_rl_acccuracy)}')
+            f'Median benchmark accuracy : {np.median(avg_benchmark_accuracy)}, RL accuracy : {np.median(avg_rl_accuracy)}')
         print(
-            f'Probability to get a set of variable with a better metric than RFE : {np.sum(is_better_list) / len(is_better_list)}')
-        print(f'Aread between the two curves : {np.trapz(avg_rl_acccuracy) - np.trapz(avg_benchmark_acccuracy)}')
-
-        index_variable: list = [i for i in range(len(avg_benchmark_acccuracy))]
-
-        avg_benchmark_acccuracy.reverse()
-        avg_rl_acccuracy.reverse()
-
+            f'Probability to get a set of variables with a better metric than RFE : {np.sum(is_better_list) / len(is_better_list)}')
+        print(f'Area between the two curves : {np.trapz(avg_rl_accuracy) - np.trapz(avg_benchmark_accuracy)}')
+    
+        index_variable: list = [i for i in range(len(avg_benchmark_accuracy))]
+    
+        avg_benchmark_accuracy.reverse()
+        avg_rl_accuracy.reverse()
+    
         # Smooth the curve for a better visual aspect
-        avg_benchmark_acccuracy_smooth = make_interp_spline(index_variable, avg_benchmark_acccuracy)
-        avg_rl_acccuracy_smooth = make_interp_spline(index_variable, avg_rl_acccuracy)
-
+        avg_benchmark_accuracy_smooth = make_interp_spline(index_variable, avg_benchmark_accuracy)
+        avg_rl_accuracy_smooth = make_interp_spline(index_variable, avg_rl_accuracy)
+    
         X_benchmark = np.linspace(np.min(index_variable), np.max(index_variable), 100)
-        Y_benchmark = avg_benchmark_acccuracy_smooth(X_benchmark)
-        Y_RL = avg_rl_acccuracy_smooth(X_benchmark)
-
-        plt.axhline(y=np.median(avg_benchmark_acccuracy), c='cornflowerblue')
-        plt.axhline(y=np.median(avg_rl_acccuracy), c='orange')
-        plt.plot(X_benchmark, Y_benchmark, label='Benchmark acccuracy')
+        Y_benchmark = avg_benchmark_accuracy_smooth(X_benchmark)
+        Y_RL = avg_rl_accuracy_smooth(X_benchmark)
+    
+        plt.axhline(y=np.median(avg_benchmark_accuracy), c='cornflowerblue')
+        plt.axhline(y=np.median(avg_rl_accuracy), c='orange')
+        plt.plot(X_benchmark, Y_benchmark, label='Benchmark accuracy')
         plt.plot(X_benchmark, Y_RL, label='RL accuracy')
         plt.xlabel('Number of variables')
         plt.ylabel('Accuracy')
         plt.legend(loc="lower right")
         plt.gca().invert_xaxis()
-
+    
         plt.show()
-
-        return is_better_list
+    
+        # Return the sum of is_better_list and the best feature combination
+        return sum(is_better_list), best_feature_combination
 
     def get_best_state(self) -> tuple[list[State | float], list[State | float]]:
         """
